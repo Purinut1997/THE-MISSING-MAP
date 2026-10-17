@@ -1,0 +1,6 @@
+{
+  "name": "THE MISSING MAP: แผนที่ปริศนาเมืองภาษาอังกฤษ",
+  "description": "เกมผจญภัยอ่านภาษาอังกฤษและเรียนรู้ทิศทาง สำหรับนักเรียน ป.6 เตรียมสอบ O-NET (English Reading & Direction Adventure for Beginners)",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
