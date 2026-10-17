@@ -98,7 +98,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
         {/* Parchment Treasure Map Visual Artifact */}
         <div className="relative rounded-2xl overflow-hidden border-2 border-amber-600/40 shadow-inner mb-4">
           <img
-            src="/src/assets/images/treasure_map_1792231831028.jpg"
+            src="/images/treasure_map_1792231831028.jpg"
             alt="The Recovered Ancient Treasure Map of English Town"
             className="w-full h-48 sm:h-64 object-cover"
             referrerPolicy="no-referrer"

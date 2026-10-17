@@ -275,7 +275,7 @@ export default function App() {
             <div className="relative rounded-3xl overflow-hidden border border-amber-900/50 shadow-2xl bg-gradient-to-b from-slate-900 to-slate-950">
               <div className="relative h-64 sm:h-96 w-full overflow-hidden">
                 <img
-                  src="/src/assets/images/hero_missing_map_1792231830152.jpg"
+                  src="/images/hero_missing_map_1792231830152.jpg"
                   alt="English Town Detective Mystery Illustration"
                   className="w-full h-full object-cover object-center"
                   referrerPolicy="no-referrer"
