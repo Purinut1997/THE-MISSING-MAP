@@ -104,6 +104,7 @@ export interface PlayerProfile {
   studentCode: string;
   lessonId: string;
   itemId: string;
+  courseId?: string;
   nickname: string;
   avatarId: string;
   totalXP: number;
@@ -148,13 +149,20 @@ export interface LMSPayload {
   type: 'ACTIVITY_COMPLETED';
   studentId: string;
   studentName: string;
+  studentCode?: string;
   lessonId: string;
   itemId: string;
+  courseId?: string;
   score: number;
   maxScore: number;
+  percentScore: number;
   xpEarned: number;
   masteryRank: DetectiveRank;
   evidenceKeys: number;
   passed: boolean;
   gameTitle: string;
+  completedLevels?: number;
+  totalLevels?: number;
+  isFinalVictory?: boolean;
+  timestamp?: string;
 }

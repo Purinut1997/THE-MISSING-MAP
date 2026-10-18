@@ -6,7 +6,13 @@
 import React, { useEffect, useState } from 'react';
 import { PlayerProfile } from './types/game.ts';
 import { LEVELS_CONFIG } from './data/missions.ts';
-import { calculateDetectiveRank, parseQueryParams } from './utils/rules.ts';
+import {
+  calculateDetectiveRank,
+  calculateGameScore,
+  createLMSPayload,
+  dispatchLMSMessage,
+  parseQueryParams
+} from './utils/rules.ts';
 import { Header } from './components/Header.tsx';
 import { TownMap } from './components/TownMap.tsx';
 import { ChallengeCard } from './components/ChallengeCard.tsx';
@@ -98,6 +104,7 @@ export default function App() {
           studentCode: query.studentCode || prev.studentCode,
           lessonId: query.lessonId || prev.lessonId,
           itemId: query.itemId || prev.itemId,
+          courseId: query.courseId || prev.courseId,
           lmsSynced: !!(query.studentId || query.lessonId)
         };
         if (query.studentName && (!prev.nickname || prev.nickname === 'นักสืบฝึกหัด')) {
@@ -236,6 +243,35 @@ export default function App() {
     setCurrentLevelId(1);
     setCurrentChallengeIndex(0);
     setActiveScreen('title');
+  };
+
+  const handleManualLMSSync = () => {
+    const scoreResult = calculateGameScore(profile);
+    const payload = createLMSPayload({
+      studentId: profile.studentId,
+      studentName: profile.studentName || profile.nickname,
+      studentCode: profile.studentCode,
+      lessonId: profile.lessonId,
+      itemId: profile.itemId,
+      courseId: profile.courseId,
+      score: scoreResult.score,
+      percentScore: scoreResult.percentScore,
+      totalXP: profile.totalXP,
+      rank: profile.rank,
+      evidenceKeysCount: profile.evidenceKeys.length,
+      passed: scoreResult.passed,
+      completedLevelsCount: profile.completedLevels.length,
+      totalLevelsCount: 6,
+      isFinalVictory: profile.completedLevels.length >= 6
+    });
+
+    const res = dispatchLMSMessage(payload);
+    const syncTime = new Date().toLocaleTimeString('th-TH');
+    setProfile(prev => ({
+      ...prev,
+      lastSyncTimestamp: syncTime
+    }));
+    return res;
   };
 
   const getThaiRank = (rank: string) => {
@@ -573,6 +609,7 @@ export default function App() {
         onClose={() => setShowProfileModal(false)}
         profile={profile}
         onUpdateNickname={(newNick) => setProfile(prev => ({ ...prev, nickname: newNick }))}
+        onSyncLMS={handleManualLMSSync}
       />
     </div>
   );

@@ -5,7 +5,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { PlayerProfile } from '../types/game.ts';
-import { createLMSPayload } from '../utils/rules.ts';
+import { calculateGameScore, createLMSPayload, dispatchLMSMessage } from '../utils/rules.ts';
 import {
   Award,
   Crown,
@@ -30,24 +30,33 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   onRestartGame
 }) => {
   const [lmsDispatched, setLmsDispatched] = useState(false);
+  const [syncedScore, setSyncedScore] = useState<number>(100);
 
   useEffect(() => {
     if (isOpen && !lmsDispatched) {
-      const finalScore = 100;
+      const scoreResult = calculateGameScore(profile);
+      const finalScore = scoreResult.score;
+      setSyncedScore(finalScore);
+
       const payload = createLMSPayload({
         studentId: profile.studentId,
         studentName: profile.studentName || profile.nickname,
+        studentCode: profile.studentCode,
         lessonId: profile.lessonId,
         itemId: profile.itemId,
+        courseId: profile.courseId,
         score: finalScore,
+        percentScore: scoreResult.percentScore,
         totalXP: profile.totalXP,
         rank: profile.rank,
-        evidenceKeysCount: profile.evidenceKeys.length
+        evidenceKeysCount: profile.evidenceKeys.length,
+        passed: true,
+        completedLevelsCount: profile.completedLevels.length,
+        totalLevelsCount: 6,
+        isFinalVictory: true
       });
 
-      if (typeof window !== 'undefined' && window.parent) {
-        window.parent.postMessage(payload, '*');
-      }
+      dispatchLMSMessage(payload);
       setLmsDispatched(true);
     }
   }, [isOpen, lmsDispatched, profile]);
@@ -90,7 +99,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
               บันทึกคะแนนส่งกลับระบบห้องเรียนเรียบร้อยแล้ว (LMS Synced!)
             </span>
             <span>
-              คะแนนเต็ม (100%), {profile.totalXP} คะแนน XP และกุญแจหลักฐานครบ 6 ดอก ได้รับการส่งต่อและบันทึกในบัญชีเรียนของ {profile.studentName || profile.nickname || 'นักสืบ'} เรียบร้อยแล้ว
+              คะแนน {syncedScore}%, {profile.totalXP} คะแนน XP และกุญแจหลักฐานครบ {profile.evidenceKeys.length} ดอก ได้รับการส่งต่อและบันทึกในบัญชีเรียนของ {profile.studentName || profile.nickname || 'นักสืบ'} เรียบร้อยแล้ว
             </span>
           </div>
         </div>

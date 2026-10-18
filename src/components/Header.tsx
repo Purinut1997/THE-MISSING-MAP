@@ -90,6 +90,18 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="hidden sm:inline text-[10px] text-purple-300/80">กุญแจ (Keys)</span>
           </div>
 
+          {/* LMS Connection Status Pill */}
+          {profile.lmsSynced && (
+            <button
+              onClick={onOpenProfile}
+              className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 whitespace-nowrap text-[11px] hover:bg-emerald-900/60 transition-colors"
+              title="เชื่อมต่อระบบห้องเรียนออนไลน์เรียบร้อยแล้ว"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span className="font-semibold text-[10px]">LMS ONLINE</span>
+            </button>
+          )}
+
           {/* Diagnostic Button */}
           <button
             onClick={onOpenDiagnostic}

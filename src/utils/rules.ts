@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { CompassHeading, DetectiveRank, LMSPayload, SkillCategory } from '../types/game.ts';
+import type { CompassHeading, DetectiveRank, LMSPayload, PlayerProfile, SkillCategory } from '../types/game.ts';
 
 /**
  * Calculates Detective Rank based on XP and completed levels.
@@ -89,31 +89,147 @@ export function calculateChallengeXP(
 }
 
 /**
+ * Calculates game score, mastery percentage, and pass status based on player profile.
+ */
+export function calculateGameScore(profile: PlayerProfile): {
+  score: number;
+  maxScore: number;
+  percentScore: number;
+  passed: boolean;
+} {
+  const completedCount = profile.completedLevels.length;
+  const totalLevels = 6;
+  const isFinalVictory = completedCount >= totalLevels;
+
+  // Calculate overall reading accuracy from skill scores
+  let totalCorrect = 0;
+  let totalAttempts = 0;
+  if (profile.skillScores) {
+    Object.values(profile.skillScores).forEach((stat) => {
+      totalCorrect += stat.correct || 0;
+      totalAttempts += stat.total || 0;
+    });
+  }
+
+  const accuracy = totalAttempts > 0 ? totalCorrect / totalAttempts : 0.85;
+
+  let score = 0;
+  if (isFinalVictory) {
+    // When all 6 levels are finished, grant a high score (85-100) based on accuracy
+    score = Math.max(85, Math.min(100, Math.round(75 + accuracy * 25)));
+  } else {
+    // Midway progress: scaled by completed levels (0-80)
+    score = Math.min(80, Math.round((completedCount / totalLevels) * 100));
+  }
+
+  const passed = isFinalVictory || score >= 80;
+
+  return {
+    score,
+    maxScore: 100,
+    percentScore: score,
+    passed
+  };
+}
+
+/**
  * Generates external LMS PostMessage payload.
  */
 export function createLMSPayload(params: {
   studentId: string;
   studentName: string;
+  studentCode?: string;
   lessonId: string;
   itemId: string;
+  courseId?: string;
   score: number;
+  maxScore?: number;
+  percentScore?: number;
   totalXP: number;
   rank: DetectiveRank;
   evidenceKeysCount: number;
+  passed?: boolean;
+  completedLevelsCount?: number;
+  totalLevelsCount?: number;
+  isFinalVictory?: boolean;
 }): LMSPayload {
+  const maxScore = params.maxScore || 100;
+  const score = Math.min(maxScore, Math.max(0, params.score));
+  const percentScore =
+    typeof params.percentScore === 'number'
+      ? params.percentScore
+      : maxScore > 0
+        ? Math.round((score / maxScore) * 100)
+        : score;
+  const passed =
+    typeof params.passed === 'boolean' ? params.passed : percentScore >= 80;
+
   return {
     type: 'ACTIVITY_COMPLETED',
     studentId: params.studentId || 'guest_student',
     studentName: params.studentName || 'Guest Detective',
+    studentCode: params.studentCode || '',
     lessonId: params.lessonId || 'ONET_ENG_GR6_01',
     itemId: params.itemId || 'THE_MISSING_MAP',
-    score: Math.min(100, Math.max(0, params.score)),
-    maxScore: 100,
+    courseId: params.courseId || '',
+    score,
+    maxScore,
+    percentScore,
     xpEarned: params.totalXP,
     masteryRank: params.rank,
     evidenceKeys: params.evidenceKeysCount,
-    passed: params.score >= 80,
-    gameTitle: 'THE MISSING MAP'
+    passed,
+    gameTitle: 'THE MISSING MAP',
+    completedLevels: params.completedLevelsCount,
+    totalLevels: params.totalLevelsCount || 6,
+    isFinalVictory: params.isFinalVictory,
+    timestamp: new Date().toISOString()
+  };
+}
+
+/**
+ * Safely dispatches the LMS payload to all parent/opener contexts (iframe and popup).
+ */
+export function dispatchLMSMessage(payload: LMSPayload): { sent: boolean; targets: string[] } {
+  const targets: string[] = [];
+
+  if (typeof window === 'undefined') {
+    return { sent: false, targets };
+  }
+
+  // 1. Dispatch to parent window (if embedded in LMS iframe)
+  if (window.parent && window.parent !== window) {
+    try {
+      window.parent.postMessage(payload, '*');
+      targets.push('window.parent');
+    } catch (err) {
+      console.warn('[THE MISSING MAP] Failed to postMessage to parent window:', err);
+    }
+  }
+
+  // 2. Dispatch to opener window (if opened in a new browser tab/window)
+  if (window.opener && !window.opener.closed) {
+    try {
+      window.opener.postMessage(payload, '*');
+      targets.push('window.opener');
+    } catch (err) {
+      console.warn('[THE MISSING MAP] Failed to postMessage to opener window:', err);
+    }
+  }
+
+  // 3. Dispatch in-window CustomEvent for debugging and testing
+  try {
+    window.dispatchEvent(new CustomEvent('the_missing_map:lms_dispatch', { detail: payload }));
+  } catch (err) {}
+
+  console.log('[THE MISSING MAP] LMS payload dispatched:', {
+    targets,
+    payload
+  });
+
+  return {
+    sent: targets.length > 0,
+    targets
   };
 }
 
@@ -128,6 +244,7 @@ export function parseQueryParams(search: string) {
     studentCode: params.get('studentCode') || '',
     lessonId: params.get('lessonId') || '',
     itemId: params.get('itemId') || '',
+    courseId: params.get('courseId') || '',
     autostart: params.get('autostart') === '1'
   };
 }
